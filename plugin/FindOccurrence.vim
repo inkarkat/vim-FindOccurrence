@@ -16,13 +16,20 @@ let g:loaded_FindOccurrence = 1
 " The function and mappings below allow for [I and <n>[<Tab> to work in visual
 " mode too, so that the search will be done for the visual highlight. In
 " addition, [I asks for the occurrence number to jump to. 
-nmap <silent>[I :<C-u>cal OSearch("nl")<CR>
-nmap <silent>[<Tab> :<C-u>cal OSearch("nj")<CR>
-vmap <silent>[I :<C-u>cal OSearch("vl")<CR>
-vmap <silent>[<Tab> :<C-u>cal OSearch("vj")<CR>
+" The [ mappings start at the beginning of the file, the ] mappings at the
+" current cursor position. 
+nmap <silent>[I :<C-u>cal OSearch("nl%")<CR>
+nmap <silent>]I :<C-u>cal OSearch("nl.")<CR>
+nmap <silent>[<Tab> :<C-u>cal OSearch("nj%")<CR>
+nmap <silent>]<Tab> :<C-u>cal OSearch("nj.")<CR>
+vmap <silent>[I :<C-u>cal OSearch("vl%")<CR>
+vmap <silent>]I :<C-u>cal OSearch("vl.")<CR>
+vmap <silent>[<Tab> :<C-u>cal OSearch("vj%")<CR>
+vmap <silent>]<Tab> :<C-u>cal OSearch("vj.")<CR>
 
 function! OSearch(action)
   let c = v:count1
+  let range = (a:action[2] == '%' ? '' : '.+1,$')
   if a:action[0] == "n"
     let s = "/\\<".expand("<cword>")."\\>/"
   elseif a:action[0] == "v"
@@ -32,7 +39,7 @@ function! OSearch(action)
   endif
   if a:action[1] == "l"
     try
-      execute "ilist! ".s
+      execute range."ilist! ".s
     catch
       if a:action[0] == "v"
         normal! gv
@@ -48,7 +55,7 @@ function! OSearch(action)
     endif
   endif
   let v:errmsg = ""
-  silent! execute "ijump! ".c." ".s
+  silent! execute range."ijump! ".c." ".s
   if v:errmsg == ""
     if a:action[0] == "v"
       " Initial version
