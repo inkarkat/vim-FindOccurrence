@@ -62,8 +62,8 @@ function! s:EchoError()
     echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
     echohl NONE
 endfunction
-let s:lastInputPattern = ''
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
+    let l:operation = a:operation
     let c = v:count1
     let skipComment = (empty(v:count) ? '' : '!')
     let range = (a:isEntireBuffer ? '' : '.+1,$')
@@ -77,25 +77,31 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     elseif a:mode == '/' " Use current search result. 
 	let s = '/' . @/ . '/'
     elseif a:mode == '?' " Query for pattern. 
-	let pattern = input('/', s:lastInputPattern)
+	let pattern = input('/')
 	if pattern == ''
 	    return
 	endif
-	let s:lastInputPattern = pattern
 	let s = '/' . pattern . '/'
-	echomsg s
     else
 	throw 'invalid mode "' a:mode '"'
     endif
 
-    if a:operation == 'search'
+    if l:operation == 'search' || l:operation == 'search-list'
 	try
 	    execute range . 'isearch' . skipComment c s
+	    return
+	catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
+	    if l:operation == 'search-list'
+		let l:operation = 'list'
+	    else
+		call s:EchoError()
+		return
+	    endif
 	catch /^Vim\%((\a\+)\)\=:E/
 	    call s:EchoError()
+	    return
 	endtry
-	return
-    elseif a:operation == 'split'
+    elseif l:operation == 'split'
 	try
 	    " Check that the destination exists before splitting the window. 
 	    silent execute range . 'isearch' . skipComment c s
@@ -105,7 +111,8 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
 	    call s:EchoError()
 	endtry
 	return
-    elseif a:operation == 'list'
+    endif
+    if l:operation == 'list'
 	try
 	    execute range . 'ilist' . skipComment s
 	catch /^Vim\%((\a\+)\)\=:E/
@@ -157,7 +164,7 @@ nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 
 " These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
 nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
-nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', 'list', 1)<CR>
-nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', 'list', 0)<CR>
+nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'search-list'), 1)<CR>
+nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'search-list'), 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
