@@ -1,4 +1,4 @@
-" source: http://vim.wikia.com/wiki/Search_visually
+" Source: http://vim.wikia.com/wiki/Search_visually
 
 " Avoid installing twice. 
 if exists('g:loaded_FindOccurrence')
@@ -6,25 +6,33 @@ if exists('g:loaded_FindOccurrence')
 endif
 let g:loaded_FindOccurrence = 1 
 
-" To display all the lines where the word under the cursor occurs, simply do in
-" Normal mode: [I. This can be useful to find a count of lines of search
-" occurrences. Each line displayed is numbered. 
-" In order to jump to the <n>th line of occurrence, do: <n>[I; this is similar
-" to <n>[i, which displays the <n>th line of occurrence. 
-" The function and mappings below work in visual mode too, so that the search
-" will be done for the visual highlight. 
-" In addition, [I without <n> asks for the occurrence number to jump to. 
+" To display all the uncommented lines where the word under the cursor occurs,
+" simply do in Normal mode: [I. To include commented lines, prepend any
+" <n>umber: 1[I. 
+" This can be useful to find a count of lines of search occurrences. Each line
+" displayed is numbered. 
+" In order to jump to the <n>th line of occurrence, do: <n>[<Tab>
+" This means type in the <n>umber first, hit '[', and then the Tab button. If
+" <n> is not typed, the jump defaults to the line where the first (uncommented)
+" word appears. If <n> is typed, commented lines are not ignored. 
+" The function and mappings below allow for [I and <n>[<Tab> to work in visual
+" mode too, so that the search will be done for the visual highlight. In
+" addition, [I asks for the occurrence number to jump to. 
 " The [ mappings start at the beginning of the file, the ] mappings at the
-" current cursor position. Commented lines are not ignored, as with <n>[i; [i
-" skips commented lines. 
-nmap <silent>[I :<C-u>cal OSearch("n%")<CR>
-nmap <silent>]I :<C-u>cal OSearch("n.")<CR>
-vmap <silent>[I :<C-u>cal OSearch("v%")<CR>
-vmap <silent>]I :<C-u>cal OSearch("v.")<CR>
+" current cursor position. 
+nmap <silent>[I :<C-u>cal OSearch("nl%")<CR>
+nmap <silent>]I :<C-u>cal OSearch("nl.")<CR>
+nmap <silent>[<Tab> :<C-u>cal OSearch("nj%")<CR>
+nmap <silent>]<Tab> :<C-u>cal OSearch("nj.")<CR>
+vmap <silent>[I :<C-u>cal OSearch("vl%")<CR>
+vmap <silent>]I :<C-u>cal OSearch("vl.")<CR>
+vmap <silent>[<Tab> :<C-u>cal OSearch("vj%")<CR>
+vmap <silent>]<Tab> :<C-u>cal OSearch("vj.")<CR>
 
 function! OSearch(action)
-  let c = v:count
-  let range = (a:action[1] == '%' ? '' : '.+1,$')
+  let c = v:count1
+  let skipComment = (empty(v:count) ? '' : '!')
+  let range = (a:action[2] == '%' ? '' : '.+1,$')
   if a:action[0] == "n"
     let s = "/\\<".expand("<cword>")."\\>/"
   elseif a:action[0] == "v"
@@ -32,9 +40,9 @@ function! OSearch(action)
     let s = "/\\V".substitute(escape(@@, "/\\"), "\n", "\\\\n", "g")."/"
     let diff = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
   endif
-  if empty(c)
+  if a:action[1] == "l"
     try
-      execute range."ilist! ".s
+      execute range."ilist".skipComment s
     catch
       if a:action[0] == "v"
         normal! gv
@@ -50,16 +58,16 @@ function! OSearch(action)
     endif
   endif
   let v:errmsg = ""
-  silent! execute range."ijump! ".c." ".s
+  silent! execute range."ijump".skipComment c s
   if v:errmsg == ""
     if a:action[0] == "v"
       " Initial version
-      " execute "normal! ".visualmode().diff."\<Space>"
+      " execute "normal!" visualmode().diff."\<Space>"
       " Bug fixfor single character visual [<Tab>:
       if diff
-        execute "normal! ".visualmode().diff."\<Space>"
+        execute "normal!" visualmode().diff."\<Space>"
       else
-        execute "normal! ".visualmode()
+        execute "normal!" visualmode()
       endif
     endif
   elseif a:action[0] == "v"
