@@ -7,8 +7,9 @@
 "     to jump to. 
 "   - ]I et al. also work in visual mode, searching for the selection instead of
 "     the keyword under cursor. 
-"   - New ]n/]N/]<C-N>/<C-W>n/<C-W><C-N> mappings that operate on the current
+"   - New ]n ]N ]<C-N> <C-W>n <C-W><C-N> mappings that operate on the current
 "     search results. 
+"   - New ]/ <C-W>/ mappings that query and then operate on a pattern. 
 "
 " USAGE:
 "   - The [ and <C-W> mappings start at the beginning of the file, the ]
@@ -18,9 +19,10 @@
 "     for the occurrence number to jump to, <C-X> directly jumps to the
 "     occurrence, <C-W>x and <C-W><C-X> split the window and jump to the
 "     occurrence.  
-"   - i/I/<Tab>/<C-W>i/<C-W><Tab> for keyword under cursor. 
-"   - d/D/<C-D>/<C-W>d/<C-W><C-D> for macro definition under cursor. 
-"   - n/N/<C-N>/<C-W>n/<C-W><C-N> for current search result. 
+"   - i I <Tab> <C-W>i <C-W><Tab> for keyword under cursor. 
+"   - d D <C-D> <C-W>d <C-W><C-D> for macro definition under cursor. 
+"   - n N <C-N> <C-W>n <C-W><C-N> for current search result. 
+"   - / <C-W>/                    for queried pattern. 
 "
 " INSTALLATION:
 " DEPENDENCIES:
@@ -40,8 +42,9 @@
 " REVISION	DATE		REMARKS 
 "	003	06-Aug-2008	Adopted script; reformatted and refactored
 "				argument handling. 
-"				Implemented ]n/]N/]<C-N> mappings for current
+"				Implemented ]n ]N ]<C-N> mappings for current
 "				search result. 
+"				Implemented ]/ mapping for queried pattern. 
 "       002     08-Jul-2008     Added ] mappings that search only from cursor
 "				position. 
 "	001	08-Jul-2008	file creation from Wiki page
@@ -59,19 +62,28 @@ function! s:EchoError()
     echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
     echohl NONE
 endfunction
+let s:lastInputPattern = ''
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let c = v:count1
     let skipComment = (empty(v:count) ? '' : '!')
     let range = (a:isEntireBuffer ? '' : '.+1,$')
 
-    if a:mode == 'n'
+    if a:mode == 'n' " Normal mode, use word under cursor. 
 	let s = '/\<' . expand('<cword>') . '\>/'
-    elseif a:mode == 'v'
+    elseif a:mode == 'v' " Visual mode, use selection. 
 	execute 'normal! gvy'
 	let s = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
 	let diff = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
-    elseif a:mode == '/'
+    elseif a:mode == '/' " Use current search result. 
 	let s = '/' . @/ . '/'
+    elseif a:mode == '?' " Query for pattern. 
+	let pattern = input('/', s:lastInputPattern)
+	if pattern == ''
+	    return
+	endif
+	let s:lastInputPattern = pattern
+	let s = '/' . pattern . '/'
+	echomsg s
     else
 	throw 'invalid mode "' a:mode '"'
     endif
@@ -124,23 +136,28 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     endif
 endfunction
 
-nnoremap <silent>[I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
-vnoremap <silent>[I         :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
-nnoremap <silent>]I         :<C-u>call <SID>FindOccurrence('n', 'list', 0)<CR>
-vnoremap <silent>]I         :<C-u>call <SID>FindOccurrence('v', 'list', 0)<CR>
-nnoremap <silent>[<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 1)<CR>
-vnoremap <silent>[<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
-nnoremap <silent>]<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 0)<CR>
-vnoremap <silent>]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
+nnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
+vnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
+nnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('n', 'list', 0)<CR>
+vnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('v', 'list', 0)<CR>
+nnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 1)<CR>
+vnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
+nnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 0)<CR>
+vnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
 
-nnoremap <silent>[n         :<C-u>call <SID>FindOccurrence('/', 'search', 1)<CR>
-nnoremap <silent>]n         :<C-u>call <SID>FindOccurrence('/', 'search', 0)<CR>
-" Disabled due to conflict with ingowindowmappings.vim. 
-"nnoremap <silent><C-W>n     :<C-u>call <SID>FindOccurrence('/', 'split', 1)<CR>
-"nnoremap <silent><C-W><C-N> :<C-u>call <SID>FindOccurrence('/', 'split', 1)<CR>
-nnoremap <silent>[N         :<C-u>call <SID>FindOccurrence('/', 'list', 1)<CR>
-nnoremap <silent>]N         :<C-u>call <SID>FindOccurrence('/', 'list', 0)<CR>
-nnoremap <silent>[<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 1)<CR>
-nnoremap <silent>]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
+nnoremap <silent> [n         :<C-u>call <SID>FindOccurrence('/', 'search', 1)<CR>
+nnoremap <silent> ]n         :<C-u>call <SID>FindOccurrence('/', 'search', 0)<CR>
+" Disabled because they would overwrite default commands. 
+"nnoremap <silent> <C-W>n     :<C-u>call <SID>FindOccurrence('/', 'split', 1)<CR>
+"nnoremap <silent> <C-W><C-N> :<C-u>call <SID>FindOccurrence('/', 'split', 1)<CR>
+nnoremap <silent> [N         :<C-u>call <SID>FindOccurrence('/', 'list', 1)<CR>
+nnoremap <silent> ]N         :<C-u>call <SID>FindOccurrence('/', 'list', 0)<CR>
+nnoremap <silent> [<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 1)<CR>
+nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
+
+" These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
+nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
+nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', 'list', 1)<CR>
+nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', 'list', 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
