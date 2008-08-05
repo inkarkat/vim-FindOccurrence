@@ -1,21 +1,24 @@
-" TODO: summary
+" FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump. 
 "
 " DESCRIPTION:
+"   This script adds the following features to the default VIM mappings for
+"   :isearch, :ilist and :ijump:
+"   - ]I et al. not only list the occurrences, but ask for the occurrence number
+"     to jump to. 
+"   - ]I et al. also work in visual mode, searching for the selection instead of
+"     the keyword under cursor. 
+"   - New ]n/]N/]<C-N> mappings that operate on the current search results. 
+"
 " USAGE:
-"   To display all the uncommented lines where the word under the cursor occurs,
-"   simply do in Normal mode: [I. To include commented lines, prepend any
-"   <n>umber: 1[I. 
-"   This can be useful to find a count of lines of search occurrences. Each line
-"   displayed is numbered. 
-"   In order to jump to the <n>th line of occurrence, do: <n>[<Tab>
-"   This means type in the <n>umber first, hit '[', and then the Tab button. If
-"   <n> is not typed, the jump defaults to the line where the first
-"   (uncommented) word appears. If <n> is typed, commented lines are not
-"   ignored. The function and mappings below allow for [I and <n>[<Tab> to work
-"   in visual mode too, so that the search will be done for the visual
-"   highlight. In addition, [I asks for the occurrence number to jump to. The [
-"   mappings start at the beginning of the file, the ] mappings at the current
-"   cursor position. 
+"   - The [ mappings start at the beginning of the file, the ] mappings at the
+"     line after the cursor. 
+"   - Without a [count], commented lines are ignored. 
+"   - x just echoes the occurrence, X prints a list of the occurrences and asks
+"     for the occurrence number to jump to, <C-X> directly jumps to the
+"     occurrence. 
+"   - i/I/<Tab> for keyword under cursor. 
+"   - d/D/<C-D> for macro definition under cursor. 
+"   - n/N/<C-N> for current search result. 
 "
 " INSTALLATION:
 " DEPENDENCIES:
@@ -25,6 +28,7 @@
 " ASSUMPTIONS:
 " KNOWN PROBLEMS:
 " TODO:
+"   - CTRL-W_n mapping not implemented. 
 "
 " Copyright: (C) 2008 by Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'. 
@@ -45,59 +49,83 @@ if exists('g:loaded_FindOccurrence')
 endif
 let g:loaded_FindOccurrence = 1 
 
-function! s:FindOccurrence( mode, isList, isEntireBuffer )
+function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let c = v:count1
     let skipComment = (empty(v:count) ? '' : '!')
     let range = (a:isEntireBuffer ? '' : '.+1,$')
+
     if a:mode == 'n'
-	let s = '/\<'.expand('<cword>').'\>/'
+	let s = '/\<' . expand('<cword>') . '\>/'
     elseif a:mode == 'v'
 	execute 'normal! gvy'
-	let s = '/\V'.substitute(escape(@@, '/\'), "\n", '\\n', 'g').'/'
+	let s = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
 	let diff = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
+    elseif a:mode == '/'
+	let s = '/' . @/ . '/'
+    else
+	throw 'invalid mode "' a:mode '"'
     endif
-    if a:isList
+
+    if a:operation == 'search'
+	try
+	    execute range . 'isearch' . skipComment c s
+	catch /^Vim\%((\a\+)\)\=:E/
+	    echohl ErrorMsg
+	    " v:exception contains what is normally in v:errmsg, but with extra
+	    " exception source info prepended, which we cut away. 
+	    echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
+	    echohl NONE
+	endtry
+	return
+    elseif a:operation == 'list'
 	try
 	    execute range . 'ilist' . skipComment s
-	catch
+	catch /^Vim\%((\a\+)\)\=:E/
+	    echohl ErrorMsg
+	    " v:exception contains what is normally in v:errmsg, but with extra
+	    " exception source info prepended, which we cut away. 
+	    echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
+	    echohl NONE
+
 	    if a:mode == 'v'
 		normal! gv
 	    endif
-	    return ''
+	    return
 	endtry
 	let c = input('Go to: ')
 	if c !~ '^[1-9]\d*$'
 	    if a:mode == 'v'
 		normal! gv
 	    endif
-	    return ''
+	    return
 	endif
     endif
     let v:errmsg = ''
     silent! execute range . 'ijump' . skipComment c s
     if v:errmsg == ''
 	if a:mode == 'v'
-	    " Initial version
-	    " execute "normal!" visualmode().diff."\<Space>"
-	    " Bug fixfor single character visual [<Tab>:
-	    if diff
-		execute 'normal!' visualmode() . diff . "\<Space>"
-	    else
-		execute 'normal!' visualmode()
-	    endif
+	    " Special case for single character visual [<Tab> (diff == 0)
+	    execute 'normal!' visualmode() . (diff ? diff . "\<Space>" : '')
 	endif
     elseif a:mode == 'v'
 	normal! gv
     endif
 endfunction
 
-nnoremap <silent>[I     :<C-u>call <SID>FindOccurrence('n', 1, 1)<CR>
-nnoremap <silent>]I     :<C-u>call <SID>FindOccurrence('n', 1, 0)<CR>
-nnoremap <silent>[<Tab> :<C-u>call <SID>FindOccurrence('n', 0, 1)<CR>
-nnoremap <silent>]<Tab> :<C-u>call <SID>FindOccurrence('n', 0, 0)<CR>
-vnoremap <silent>[I     :<C-u>call <SID>FindOccurrence('v', 1, 1)<CR>
-vnoremap <silent>]I     :<C-u>call <SID>FindOccurrence('v', 1, 0)<CR>
-vnoremap <silent>[<Tab> :<C-u>call <SID>FindOccurrence('v', 0, 1)<CR>
-vnoremap <silent>]<Tab> :<C-u>call <SID>FindOccurrence('v', 0, 0)<CR>
+nnoremap <silent>[I     :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
+vnoremap <silent>[I     :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
+nnoremap <silent>]I     :<C-u>call <SID>FindOccurrence('n', 'list', 0)<CR>
+vnoremap <silent>]I     :<C-u>call <SID>FindOccurrence('v', 'list', 0)<CR>
+nnoremap <silent>[<Tab> :<C-u>call <SID>FindOccurrence('n', 'jump', 1)<CR>
+vnoremap <silent>[<Tab> :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
+nnoremap <silent>]<Tab> :<C-u>call <SID>FindOccurrence('n', 'jump', 0)<CR>
+vnoremap <silent>]<Tab> :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
+
+nnoremap <silent>[n     :<C-u>call <SID>FindOccurrence('/', 'search', 1)<CR>
+nnoremap <silent>]n     :<C-u>call <SID>FindOccurrence('/', 'search', 0)<CR>
+nnoremap <silent>[N     :<C-u>call <SID>FindOccurrence('/', 'list', 1)<CR>
+nnoremap <silent>]N     :<C-u>call <SID>FindOccurrence('/', 'list', 0)<CR>
+nnoremap <silent>[<C-N> :<C-u>call <SID>FindOccurrence('/', 'jump', 1)<CR>
+nnoremap <silent>]<C-N> :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
