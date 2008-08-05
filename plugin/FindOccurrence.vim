@@ -56,16 +56,86 @@ endif
 let g:loaded_FindOccurrence = 1 
 
 function! s:EchoError()
+    redraw
     echohl ErrorMsg
     " v:exception contains what is normally in v:errmsg, but with extra
     " exception source info prepended, which we cut away. 
     echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
     echohl NONE
 endfunction
+function! s:DoSearch( range, skipComment, c, s, isSilent)
+    try
+	execute a:range . 'isearch' . a:skipComment a:c a:s
+    catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
+	if ! a:isSilent
+	    call s:EchoError()
+	endif
+	return 0
+    catch /^Vim\%((\a\+)\)\=:E38[78]/
+	call s:EchoError()
+    endtry
+    return 1
+endfunction
+function! s:DoSplit( range, skipComment, c, s )
+    try
+	" Check that the destination exists before splitting the window. 
+	silent execute a:range . 'isearch' . a:skipComment a:c a:s
+	split
+	execute a:range . 'ijump' . a:skipComment a:c a:s
+    catch /^Vim\%((\a\+)\)\=:E38[789]/
+	call s:EchoError()
+    endtry
+    endtry
+endfunction
+function! s:DoList( range, skipComment, c, s, mode, diff)
+    try
+	execute a:range . 'ilist' . a:skipComment a:s
+    catch /^Vim\%((\a\+)\)\=:E38[789]/
+	call s:EchoError()
+
+	if a:mode == 'v'
+	    normal! gv
+	endif
+	return
+    endtry
+    let c = input('Go to: ')
+    " Do not remember this selection, as it interferes with easy recall of
+    " entered pattern (via <Up>). 
+    call histdel('input', -1)
+    if c !~ '^[1-9]\d*$'
+	if a:mode == 'v'
+	    normal! gv
+	endif
+	return
+    endif
+    call s:DoJump( a:range, a:skipComment, c, a:s, a:mode, a:diff, 0 )
+endfunction
+function! s:DoJump( range, skipComment, c, s, mode, diff, isSilent )
+    try
+	execute a:range . 'ijump' . a:skipComment a:c a:s
+	if a:mode == 'v'
+	    " Special case for single character visual [<Tab> (a:diff == 0)
+	    execute 'normal!' visualmode() . (a:diff ? a:diff . "\<Space>" : '')
+	endif
+	return 1
+    catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
+	if a:isSilent 
+	    return 0
+	else
+	    call s:EchoError()
+	endif
+    catch /^Vim\%((\a\+)\)\=:E38[78]/
+	call s:EchoError()
+    endtry
+    if a:mode == 'v'
+	normal! gv
+    endif
+endfunction
+
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
-    let l:operation = a:operation
     let c = v:count1
     let skipComment = (empty(v:count) ? '' : '!')
+    let diff = 0
     let range = (a:isEntireBuffer ? '' : '.+1,$')
 
     if a:mode == 'n' " Normal mode, use word under cursor. 
@@ -86,60 +156,22 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
 	throw 'invalid mode "' a:mode '"'
     endif
 
-    if l:operation == 'search' || l:operation == 'search-list'
-	try
-	    execute range . 'isearch' . skipComment c s
-	    return
-	catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
-	    if l:operation == 'search-list'
-		let l:operation = 'list'
-	    else
-		call s:EchoError()
-		return
-	    endif
-	catch /^Vim\%((\a\+)\)\=:E/
-	    call s:EchoError()
-	    return
-	endtry
-    elseif l:operation == 'split'
-	try
-	    " Check that the destination exists before splitting the window. 
-	    silent execute range . 'isearch' . skipComment c s
-	    split
-	    execute range . 'ijump' . skipComment c s
-	catch /^Vim\%((\a\+)\)\=:E/
-	    call s:EchoError()
-	endtry
-	return
-    endif
-    if l:operation == 'list'
-	try
-	    execute range . 'ilist' . skipComment s
-	catch /^Vim\%((\a\+)\)\=:E/
-	    call s:EchoError()
-
-	    if a:mode == 'v'
-		normal! gv
-	    endif
-	    return
-	endtry
-	let c = input('Go to: ')
-	if c !~ '^[1-9]\d*$'
-	    if a:mode == 'v'
-		normal! gv
-	    endif
-	    return
+    if a:operation == 'search'
+	call s:DoSearch( range, skipComment, c, s, 0 )
+    elseif a:operation == 'search-list'
+	if ! s:DoSearch( range, skipComment, c, s, 1 )
+	    call s:DoList( range, skipComment, c, s, a:mode, diff )
 	endif
-    endif
-    let v:errmsg = ''
-    silent! execute range . 'ijump' . skipComment c s
-    if v:errmsg == ''
-	if a:mode == 'v'
-	    " Special case for single character visual [<Tab> (diff == 0)
-	    execute 'normal!' visualmode() . (diff ? diff . "\<Space>" : '')
+    elseif a:operation == 'split'
+	call s:DoSplit( range, skipComment, c, s )
+    elseif a:operation == 'list'
+	call s:DoList( range, skipComment, c, s, a:mode, diff )
+    elseif a:operation == 'jump-list'
+	if ! s:DoJump( range, skipComment, c, s, a:mode, diff, 1 )
+	    call s:DoList( range, skipComment, c, s, a:mode, diff )
 	endif
-    elseif a:mode == 'v'
-	normal! gv
+    elseif a:operation == 'jump'
+	call s:DoJump( range, skipComment, c, s, a:mode, diff, 0 )
     endif
 endfunction
 
@@ -164,7 +196,7 @@ nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 
 " These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
 nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
-nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'search-list'), 1)<CR>
-nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'search-list'), 0)<CR>
+nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'jump-list'), 1)<CR>
+nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'jump-list'), 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
