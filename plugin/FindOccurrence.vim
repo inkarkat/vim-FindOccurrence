@@ -50,22 +50,25 @@
 "	001	08-Jul-2008	file creation from Wiki page
 
 " Avoid installing twice. 
-if exists('g:loaded_FindOccurrence')
+if exists('g:loaded_FindOccurrence') || (v:version < 700)
     finish
 endif
 let g:loaded_FindOccurrence = 1 
 
 function! s:EchoError()
+    " After input(), the next :echo may be off-base. (Is this a VIM bug?)
+    " A redraw fixes this. 
     redraw
+
     echohl ErrorMsg
     " v:exception contains what is normally in v:errmsg, but with extra
     " exception source info prepended, which we cut away. 
     echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
     echohl NONE
 endfunction
-function! s:DoSearch( range, skipComment, c, s, isSilent)
+function! s:DoSearch( isSilent )
     try
-	execute a:range . 'isearch' . a:skipComment a:c a:s
+	execute s:range . 'isearch' . s:skipComment s:count s:pattern
     catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
 	if ! a:isSilent
 	    call s:EchoError()
@@ -76,38 +79,37 @@ function! s:DoSearch( range, skipComment, c, s, isSilent)
     endtry
     return 1
 endfunction
-function! s:DoSplit( range, skipComment, c, s )
+function! s:DoSplit()
     try
 	" Check that the destination exists before splitting the window. 
-	silent execute a:range . 'isearch' . a:skipComment a:c a:s
+	silent execute s:range . 'isearch' . s:skipComment s:count s:pattern
 	split
-	execute a:range . 'ijump' . a:skipComment a:c a:s
+	execute a:range . 'ijump' . s:skipComment s:count s:pattern
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	call s:EchoError()
     endtry
-    endtry
 endfunction
-function! s:DoList( range, skipComment, c, s, mode, diff)
+function! s:DoList()
     try
-	execute a:range . 'ilist' . a:skipComment a:s
+	execute s:range . 'ilist' . s:skipComment s:pattern
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	call s:EchoError()
 	return
     endtry
 
-    let c = input('Go to: ')
+    let s:count = input('Go to: ')
     " Do not remember this selection, as it interferes with easy recall of
     " entered pattern (via <Up>). 
     call histdel('input', -1)
-    if c !~ '^[1-9]\d*$'
+    if s:count !~ '^[1-9]\d*$'
 	return
     endif
 
-    call s:DoJump( a:range, a:skipComment, c, a:s, a:mode, a:diff, 0 )
+    call s:DoJump(0)
 endfunction
-function! s:DoJump( range, skipComment, c, s, mode, diff, isSilent )
+function! s:DoJump( isSilent )
     try
-	execute a:range . 'ijump' . a:skipComment a:c a:s
+	execute s:range . 'ijump' . s:skipComment s:count s:pattern
 	let s:didJump = 1
 	return 1
     catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
@@ -123,52 +125,52 @@ function! s:DoJump( range, skipComment, c, s, mode, diff, isSilent )
 endfunction
 
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
-    let c = v:count1
-    let skipComment = (empty(v:count) ? '' : '!')
-    let diff = 0
-    let range = (a:isEntireBuffer ? '' : '.+1,$')
+    let s:count = v:count1
+    let s:skipComment = (empty(v:count) ? '' : '!')
+    let s:range = (a:isEntireBuffer ? '' : '.+1,$')
     let s:didJump = 0
+    let l:selectionLength = 0
 
     if a:mode == 'n' " Normal mode, use word under cursor. 
-	let s = '/\<' . expand('<cword>') . '\>/'
+	let s:pattern = '/\<' . expand('<cword>') . '\>/'
     elseif a:mode == 'v' " Visual mode, use selection. 
 	execute 'normal! gvy'
-	let s = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
-	let diff = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
+	let s:pattern = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
+	let l:selectionLength = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
     elseif a:mode == '/' " Use current search result. 
-	let s = '/' . @/ . '/'
+	let s:pattern = '/' . @/ . '/'
     elseif a:mode == '?' " Query for pattern. 
-	let pattern = input('/')
-	if pattern == ''
+	let l:pattern = input('/')
+	if l:pattern == ''
 	    return
 	endif
-	let s = '/' . pattern . '/'
+	let s:pattern = '/' . l:pattern . '/'
     else
 	throw 'invalid mode "' a:mode '"'
     endif
 
     if a:operation == 'search'
-	call s:DoSearch( range, skipComment, c, s, 0 )
+	call s:DoSearch(0)
     elseif a:operation == 'search-list'
-	if ! s:DoSearch( range, skipComment, c, s, 1 )
-	    call s:DoList( range, skipComment, c, s, a:mode, diff )
+	if ! s:DoSearch(1)
+	    call s:DoList()
 	endif
     elseif a:operation == 'split'
-	call s:DoSplit( range, skipComment, c, s )
+	call s:DoSplit()
     elseif a:operation == 'list'
-	call s:DoList( range, skipComment, c, s, a:mode, diff )
+	call s:DoList()
     elseif a:operation == 'jump-list'
-	if ! s:DoJump( range, skipComment, c, s, a:mode, diff, 1 )
-	    call s:DoList( range, skipComment, c, s, a:mode, diff )
+	if ! s:DoJump(1)
+	    call s:DoList()
 	endif
     elseif a:operation == 'jump'
-	call s:DoJump( range, skipComment, c, s, a:mode, diff, 0 )
+	call s:DoJump(0)
     endif
 
     if a:mode == 'v'
 	if s:didJump
-	    " Special case for single character visual [<Tab> (diff == 0)
-	    execute 'normal!' visualmode() . (diff ? diff . "\<Space>" : '')
+	    " Special case for single character visual [<Tab> (l:selectionLength == 0)
+	    execute 'normal!' visualmode() . (l:selectionLength ? l:selectionLength . "\<Space>" : '')
 	else
 	    redraw
 	    sleep 1
