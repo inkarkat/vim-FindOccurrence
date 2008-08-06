@@ -92,31 +92,23 @@ function! s:DoList( range, skipComment, c, s, mode, diff)
 	execute a:range . 'ilist' . a:skipComment a:s
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	call s:EchoError()
-
-	if a:mode == 'v'
-	    normal! gv
-	endif
 	return
     endtry
+
     let c = input('Go to: ')
     " Do not remember this selection, as it interferes with easy recall of
     " entered pattern (via <Up>). 
     call histdel('input', -1)
     if c !~ '^[1-9]\d*$'
-	if a:mode == 'v'
-	    normal! gv
-	endif
 	return
     endif
+
     call s:DoJump( a:range, a:skipComment, c, a:s, a:mode, a:diff, 0 )
 endfunction
 function! s:DoJump( range, skipComment, c, s, mode, diff, isSilent )
     try
 	execute a:range . 'ijump' . a:skipComment a:c a:s
-	if a:mode == 'v'
-	    " Special case for single character visual [<Tab> (a:diff == 0)
-	    execute 'normal!' visualmode() . (a:diff ? a:diff . "\<Space>" : '')
-	endif
+	let s:didJump = 1
 	return 1
     catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
 	if a:isSilent 
@@ -127,9 +119,7 @@ function! s:DoJump( range, skipComment, c, s, mode, diff, isSilent )
     catch /^Vim\%((\a\+)\)\=:E38[78]/
 	call s:EchoError()
     endtry
-    if a:mode == 'v'
-	normal! gv
-    endif
+    return 1
 endfunction
 
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
@@ -137,6 +127,7 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let skipComment = (empty(v:count) ? '' : '!')
     let diff = 0
     let range = (a:isEntireBuffer ? '' : '.+1,$')
+    let s:didJump = 0
 
     if a:mode == 'n' " Normal mode, use word under cursor. 
 	let s = '/\<' . expand('<cword>') . '\>/'
@@ -173,8 +164,21 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     elseif a:operation == 'jump'
 	call s:DoJump( range, skipComment, c, s, a:mode, diff, 0 )
     endif
+
+    if a:mode == 'v'
+	if s:didJump
+	    " Special case for single character visual [<Tab> (diff == 0)
+	    execute 'normal!' visualmode() . (diff ? diff . "\<Space>" : '')
+	else
+	    redraw
+	    sleep 1
+	    normal! gv
+	endif
+    endif
 endfunction
 
+vnoremap <silent> [i         :<C-u>call <SID>FindOccurrence('v', 'search', 1)<CR>
+vnoremap <silent> ]i         :<C-u>call <SID>FindOccurrence('v', 'search', 0)<CR>
 nnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
 vnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
 nnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('n', 'list', 0)<CR>
