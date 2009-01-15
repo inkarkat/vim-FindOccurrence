@@ -40,6 +40,12 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	004	07-Aug-2008	Complete refactoring; split operations into
+"				separate functions. 
+"				Two new operations: jump-list and search-list,
+"				which fall back on listing if the first op
+"				didn't find anything. 
+"				Added {visual}]i. 
 "	003	06-Aug-2008	Adopted script; reformatted and refactored
 "				argument handling. 
 "				Implemented ]n ]N ]<C-N> mappings for current
@@ -102,6 +108,9 @@ function! s:DoList()
     " entered pattern (via <Up>). 
     call histdel('input', -1)
     if s:count !~ '^[1-9]\d*$'
+	" User canceled, there's no error message to show, so don't delay
+	" visual reselection. 
+	let s:reselectionDelay = 0
 	return
     endif
 
@@ -129,6 +138,7 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let s:skipComment = (empty(v:count) ? '' : '!')
     let s:range = (a:isEntireBuffer ? '' : '.+1,$')
     let s:didJump = 0
+    let s:reselectionDelay = 1
     let l:selectionLength = 0
 
     if a:mode == 'n' " Normal mode, use word under cursor. 
@@ -146,7 +156,7 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
 	endif
 	let s:pattern = '/' . l:pattern . '/'
     else
-	throw 'invalid mode "' a:mode '"'
+	throw 'invalid mode "' . a:mode . '"'
     endif
 
     if a:operation == 'search'
@@ -165,20 +175,41 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
 	endif
     elseif a:operation == 'jump'
 	call s:DoJump(0)
+    else
+	throw 'invalid operation "' . a:operation . '"'
     endif
 
     if a:mode == 'v'
 	if s:didJump
+	    " We've jumped to a keyword, now select the keyword at the *new* position. 
 	    " Special case for single character visual [<Tab> (l:selectionLength == 0)
 	    execute 'normal!' visualmode() . (l:selectionLength ? l:selectionLength . "\<Space>" : '')
 	else
-	    redraw
-	    sleep 1
+	    " We didn't jump, reselect the current keyword so that any operation
+	    " can be repeated easily. 
+
+	    " If there was an error message, or an :iselect command, we must be
+	    " careful not to immediately overwrite the desired output by
+	    " re-entering visual mode. 
+	    if &cmdheight == 1
+		if s:reselectionDelay
+		    redraw
+		    execute 'sleep' s:reselectionDelay
+		endif
+	    endif
 	    normal! gv
 	endif
     endif
 endfunction
 
+
+
+"List occurrences of word under cursor / visual selection: 
+"With any [count], also includes 'comment'ed lines. 
+"[count][I		List all occurrences in the file. (Like |:ilist|)
+"[count]]I		List occurrences from the cursor position to end of file. 
+"[count][CTRL-I		Jump to the [count]th occurrence in the file. (Like |:ijump|)
+"[count]]CTRL-I		Jump to the [count]th occurrence starting from the cursor position. 
 vnoremap <silent> [i         :<C-u>call <SID>FindOccurrence('v', 'search', 1)<CR>
 vnoremap <silent> ]i         :<C-u>call <SID>FindOccurrence('v', 'search', 0)<CR>
 nnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
@@ -190,6 +221,15 @@ vnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
 nnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 0)<CR>
 vnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
 
+
+" List occurrences of current search result (@/): 
+" With any [count], also includes 'comment'ed lines. 
+"[count][n		List [count]th occurrence in the file. (Like |:isearch|)
+"[count]]n		List [count]th occurrence from the cursor position. 
+"[count][N		List all occurrences in the file. (Like |:ilist|)
+"[count]]N		List occurrences from the cursor position to end of file. 
+"[count][CTRL-N		Jump to the [count]th occurrence in the file. (Like |:ijump|)
+"[count]]CTRL-N		Jump to the [count]th occurrence starting from the cursor position. 
 nnoremap <silent> [n         :<C-u>call <SID>FindOccurrence('/', 'search', 1)<CR>
 nnoremap <silent> ]n         :<C-u>call <SID>FindOccurrence('/', 'search', 0)<CR>
 " Disabled because they would overwrite default commands. 
@@ -200,6 +240,21 @@ nnoremap <silent> ]N         :<C-u>call <SID>FindOccurrence('/', 'list', 0)<CR>
 nnoremap <silent> [<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 1)<CR>
 nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 
+
+"List occurrences of queried pattern:
+"With any [count], also includes 'comment'ed lines. 
+"[count][/		Without [count]: Query, then list all occurrences in
+"			the file (like |:ilist|). 
+" 			With [count]: Query, then jump to [count]th
+" 			occurrence; if it doesn't exist, list all occurrences. 
+"[count]]/		Without [count]: Query, then list occurrences from the
+" 			cursor position to end of file. 
+" 			With [count]: Query, then jump to [count]th
+" 			occurrence from the cursor position; if it doesn't
+" 			exist, list occurrences from the cursor position to
+" 			end of file. 
+"[count]CTRL-W_/	Query, then jump to the [count]th occurrence in a split window. 
+"
 " These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
 nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
 nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'jump-list'), 1)<CR>
