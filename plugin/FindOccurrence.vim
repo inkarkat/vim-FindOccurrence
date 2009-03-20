@@ -40,6 +40,7 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	005	16-Jan-2009	Now setting v:errmsg on errors. 
 "	004	07-Aug-2008	Complete refactoring; split operations into
 "				separate functions. 
 "				Two new operations: jump-list and search-list,
@@ -69,8 +70,9 @@ function! s:EchoError()
     echohl ErrorMsg
     " v:exception contains what is normally in v:errmsg, but with extra
     " exception source info prepended, which we cut away. 
-    echomsg substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
-    echohl NONE
+    let v:errmsg = substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
+    echomsg v:errmsg
+    echohl None
 endfunction
 function! s:DoSearch( isSilent )
     try
