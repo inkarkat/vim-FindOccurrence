@@ -40,6 +40,7 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	006	21-Mar-2009	Simplified handling of v:count. 
 "	005	16-Jan-2009	Now setting v:errmsg on errors. 
 "	004	07-Aug-2008	Complete refactoring; split operations into
 "				separate functions. 
@@ -137,7 +138,7 @@ endfunction
 
 function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let s:count = v:count1
-    let s:skipComment = (empty(v:count) ? '' : '!')
+    let s:skipComment = (v:count ? '!' : '')
     let s:range = (a:isEntireBuffer ? '' : '.+1,$')
     let s:didJump = 0
     let s:reselectionDelay = 1
@@ -210,8 +211,8 @@ endfunction
 "With any [count], also includes 'comment'ed lines. 
 "[count][I		List all occurrences in the file. (Like |:ilist|)
 "[count]]I		List occurrences from the cursor position to end of file. 
-"[count][CTRL-I		Jump to the [count]th occurrence in the file. (Like |:ijump|)
-"[count]]CTRL-I		Jump to the [count]th occurrence starting from the cursor position. 
+"[count][CTRL-I		Jump to the [count]'th occurrence in the file. (Like |:ijump|)
+"[count]]CTRL-I		Jump to the [count]'th occurrence starting from the cursor position. 
 vnoremap <silent> [i         :<C-u>call <SID>FindOccurrence('v', 'search', 1)<CR>
 vnoremap <silent> ]i         :<C-u>call <SID>FindOccurrence('v', 'search', 0)<CR>
 nnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
@@ -226,12 +227,12 @@ vnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
 
 " List occurrences of current search result (@/): 
 " With any [count], also includes 'comment'ed lines. 
-"[count][n		List [count]th occurrence in the file. (Like |:isearch|)
-"[count]]n		List [count]th occurrence from the cursor position. 
+"[count][n		List [count]'th occurrence in the file. (Like |:isearch|)
+"[count]]n		List [count]'th occurrence from the cursor position. 
 "[count][N		List all occurrences in the file. (Like |:ilist|)
 "[count]]N		List occurrences from the cursor position to end of file. 
-"[count][CTRL-N		Jump to the [count]th occurrence in the file. (Like |:ijump|)
-"[count]]CTRL-N		Jump to the [count]th occurrence starting from the cursor position. 
+"[count][CTRL-N		Jump to the [count]'th occurrence in the file. (Like |:ijump|)
+"[count]]CTRL-N		Jump to the [count]'th occurrence starting from the cursor position. 
 nnoremap <silent> [n         :<C-u>call <SID>FindOccurrence('/', 'search', 1)<CR>
 nnoremap <silent> ]n         :<C-u>call <SID>FindOccurrence('/', 'search', 0)<CR>
 " Disabled because they would overwrite default commands. 
@@ -247,19 +248,19 @@ nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 "With any [count], also includes 'comment'ed lines. 
 "[count][/		Without [count]: Query, then list all occurrences in
 "			the file (like |:ilist|). 
-" 			With [count]: Query, then jump to [count]th
+" 			With [count]: Query, then jump to [count]'th
 " 			occurrence; if it doesn't exist, list all occurrences. 
 "[count]]/		Without [count]: Query, then list occurrences from the
 " 			cursor position to end of file. 
-" 			With [count]: Query, then jump to [count]th
+" 			With [count]: Query, then jump to [count]'th
 " 			occurrence from the cursor position; if it doesn't
 " 			exist, list occurrences from the cursor position to
 " 			end of file. 
-"[count]CTRL-W_/	Query, then jump to the [count]th occurrence in a split window. 
+"[count]CTRL-W_/	Query, then jump to the [count]'th occurrence in a split window. 
 "
 " These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
 nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
-nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'jump-list'), 1)<CR>
-nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count==0 ? 'list' : 'jump-list'), 0)<CR>
+nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jump-list' : 'list'), 1)<CR>
+nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jump-list' : 'list'), 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
