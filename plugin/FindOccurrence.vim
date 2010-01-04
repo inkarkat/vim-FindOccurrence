@@ -1,7 +1,7 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump. 
 "
 " DESCRIPTION:
-"   This script adds the following features to the default VIM mappings for
+"   This script adds the following features to the default Vim mappings for
 "   :isearch, :ilist and :ijump:
 "   - ]I et al. not only list the occurrences, but ask for the occurrence number
 "     to jump to. 
@@ -40,6 +40,8 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	007	06-Oct-2009	Do not define mappings for select mode;
+"				printable characters should start insert mode. 
 "	006	21-Mar-2009	Simplified handling of v:count. 
 "	005	16-Jan-2009	Now setting v:errmsg on errors. 
 "	004	07-Aug-2008	Complete refactoring; split operations into
@@ -64,7 +66,7 @@ endif
 let g:loaded_FindOccurrence = 1 
 
 function! s:EchoError()
-    " After input(), the next :echo may be off-base. (Is this a VIM bug?)
+    " After input(), the next :echo may be off-base. (Is this a Vim bug?)
     " A redraw fixes this. 
     redraw
 
@@ -213,16 +215,16 @@ endfunction
 "[count]]I		List occurrences from the cursor position to end of file. 
 "[count][CTRL-I		Jump to the [count]'th occurrence in the file. (Like |:ijump|)
 "[count]]CTRL-I		Jump to the [count]'th occurrence starting from the cursor position. 
-vnoremap <silent> [i         :<C-u>call <SID>FindOccurrence('v', 'search', 1)<CR>
-vnoremap <silent> ]i         :<C-u>call <SID>FindOccurrence('v', 'search', 0)<CR>
+xnoremap <silent> [i         :<C-u>call <SID>FindOccurrence('v', 'search', 1)<CR>
+xnoremap <silent> ]i         :<C-u>call <SID>FindOccurrence('v', 'search', 0)<CR>
 nnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('n', 'list', 1)<CR>
-vnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
+xnoremap <silent> [I         :<C-u>call <SID>FindOccurrence('v', 'list', 1)<CR>
 nnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('n', 'list', 0)<CR>
-vnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('v', 'list', 0)<CR>
+xnoremap <silent> ]I         :<C-u>call <SID>FindOccurrence('v', 'list', 0)<CR>
 nnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 1)<CR>
-vnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
+xnoremap <silent> [<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 1)<CR>
 nnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('n', 'jump', 0)<CR>
-vnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
+xnoremap <silent> ]<Tab>     :<C-u>call <SID>FindOccurrence('v', 'jump', 0)<CR>
 
 
 " List occurrences of current search result (@/): 
