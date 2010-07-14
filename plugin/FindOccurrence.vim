@@ -42,6 +42,9 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	009	15-Jul-2010	BUG: Accidentally removed queried pattern from
+"				the input history if the user cancels out of
+"				selection. 
 "	008	05-Jan-2010	BUG: Didn't escape <cword> and didn't check
 "				whether it actually must be enclosed in \<...\>.
 "				Now using
@@ -118,8 +121,12 @@ function! s:DoList()
     let s:count = input('Go to: ')
     " Do not remember this selection, as it interferes with easy recall of
     " entered pattern (via <Up>). 
-    call histdel('input', -1)
-    if s:count !~ '^[1-9]\d*$'
+    if ! empty(s:count)
+	" Nothing is added to the input history if the user canceled with <Esc>. 
+	call histdel('input', -1)
+    endif
+
+    if s:count !~# '^[1-9]\d*$'
 	" User canceled, there's no error message to show, so don't delay
 	" visual reselection. 
 	let s:reselectionDelay = 0
@@ -163,9 +170,7 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
 	let s:pattern = '/' . @/ . '/'
     elseif a:mode == '?' " Query for pattern. 
 	let l:pattern = input('/')
-	if l:pattern == ''
-	    return
-	endif
+	if empty(l:pattern) | return | endif
 	let s:pattern = '/' . l:pattern . '/'
     else
 	throw 'invalid mode "' . a:mode . '"'
