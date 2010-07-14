@@ -26,6 +26,8 @@
 "
 " INSTALLATION:
 " DEPENDENCIES:
+"   - ingosearch.vim autoload script. 
+"
 " CONFIGURATION:
 " INTEGRATION:
 " LIMITATIONS:
@@ -40,6 +42,11 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS 
+"	008	05-Jan-2010	BUG: Didn't escape <cword> and didn't check
+"				whether it actually must be enclosed in \<...\>.
+"				Now using
+"				ingosearch#LiteralTextToSearchPattern() for
+"				that. 
 "	007	06-Oct-2009	Do not define mappings for select mode;
 "				printable characters should start insert mode. 
 "	006	21-Mar-2009	Simplified handling of v:count. 
@@ -147,7 +154,7 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let l:selectionLength = 0
 
     if a:mode == 'n' " Normal mode, use word under cursor. 
-	let s:pattern = '/\<' . expand('<cword>') . '\>/'
+	let s:pattern = '/' . ingosearch#LiteralTextToSearchPattern(expand('<cword>'), 1, '') . '/'
     elseif a:mode == 'v' " Visual mode, use selection. 
 	execute 'normal! gvy'
 	let s:pattern = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
