@@ -14,7 +14,9 @@
 " USAGE:
 "   - The [ and <C-W> mappings start at the beginning of the file, the ]
 "     mappings at the line after the cursor. 
-"   - Without a [count], commented lines are ignored. 
+"   - Without a [count], commented lines are ignored. If you want to show the
+"     list that includes commented lines, use a high count (e.g. 999) that is
+"     unlikely to produce a direct match. 
 "   - x just echoes the occurrence, X prints a list of the occurrences and asks
 "     for the occurrence number to jump to, <C-X> directly jumps to the
 "     occurrence, <C-W>x and <C-W><C-X> split the window and jump to the
@@ -35,7 +37,7 @@
 " KNOWN PROBLEMS:
 " TODO:
 "
-" Copyright: (C) 2008 by Ingo Karkat
+" Copyright: (C) 2008-2010 by Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'. 
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
@@ -45,6 +47,8 @@
 "	009	15-Jul-2010	BUG: Accidentally removed queried pattern from
 "				the input history if the user cancels out of
 "				selection. 
+"				ENH: Added [? ]? CTRL-W_? mappings that
+"				reuse last queried pattern. 
 "	008	05-Jan-2010	BUG: Didn't escape <cword> and didn't check
 "				whether it actually must be enclosed in \<...\>.
 "				Now using
@@ -115,7 +119,7 @@ function! s:DoList()
 	execute s:range . 'ilist' . s:skipComment s:pattern
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	call s:EchoError()
-	return
+	return 0
     endtry
 
     let s:count = input('Go to: ')
@@ -130,10 +134,10 @@ function! s:DoList()
 	" User canceled, there's no error message to show, so don't delay
 	" visual reselection. 
 	let s:reselectionDelay = 0
-	return
+	return 0
     endif
 
-    call s:DoJump(0)
+    return s:DoJump(0)
 endfunction
 function! s:DoJump( isSilent )
     try
@@ -160,43 +164,58 @@ function! s:FindOccurrence( mode, operation, isEntireBuffer )
     let s:reselectionDelay = 1
     let l:selectionLength = 0
 
-    if a:mode == 'n' " Normal mode, use word under cursor. 
+    if a:mode ==# 'n' " Normal mode, use word under cursor. 
 	let s:pattern = '/' . ingosearch#LiteralTextToSearchPattern(expand('<cword>'), 1, '') . '/'
-    elseif a:mode == 'v' " Visual mode, use selection. 
+    elseif a:mode ==# 'v' " Visual mode, use selection. 
 	execute 'normal! gvy'
 	let s:pattern = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
 	let l:selectionLength = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
-    elseif a:mode == '/' " Use current search result. 
+    elseif a:mode ==# '/' " Use current search result. 
 	let s:pattern = '/' . @/ . '/'
-    elseif a:mode == '?' " Query for pattern. 
+    elseif a:mode ==# '?' " Query for pattern. 
 	let l:pattern = input('/')
 	if empty(l:pattern) | return | endif
+	let s:lastPattern = l:pattern
 	let s:pattern = '/' . l:pattern . '/'
+    elseif a:mode ==# '?R' " Reuse last queried pattern. 
+	if ! exists('s:lastPattern')
+	    " After input(), the next :echo may be off-base. (Is this a Vim bug?)
+	    " A redraw fixes this. 
+	    redraw
+
+	    let v:errmsg = 'No previous pattern, use [/ first'
+	    echohl ErrorMsg
+	    echomsg v:errmsg
+	    echohl None
+
+	    return
+	endif
+	let s:pattern = '/' . s:lastPattern . '/'
     else
 	throw 'invalid mode "' . a:mode . '"'
     endif
 
-    if a:operation == 'search'
+    if a:operation ==# 'search'
 	call s:DoSearch(0)
-    elseif a:operation == 'search-list'
+    elseif a:operation ==# 'search-list'
 	if ! s:DoSearch(1)
 	    call s:DoList()
 	endif
-    elseif a:operation == 'split'
+    elseif a:operation ==# 'split'
 	call s:DoSplit()
-    elseif a:operation == 'list'
+    elseif a:operation ==# 'list'
 	call s:DoList()
-    elseif a:operation == 'jump-list'
+    elseif a:operation ==# 'jump-list'
 	if ! s:DoJump(1)
 	    call s:DoList()
 	endif
-    elseif a:operation == 'jump'
+    elseif a:operation ==# 'jump'
 	call s:DoJump(0)
     else
 	throw 'invalid operation "' . a:operation . '"'
     endif
 
-    if a:mode == 'v'
+    if a:mode ==# 'v'
 	if s:didJump
 	    " We've jumped to a keyword, now select the keyword at the *new* position. 
 	    " Special case for single character visual [<Tab> (l:selectionLength == 0)
@@ -262,19 +281,35 @@ nnoremap <silent> ]<C-N>     :<C-u>call <SID>FindOccurrence('/', 'jump', 0)<CR>
 "With any [count], also includes 'comment'ed lines. 
 "[count][/		Without [count]: Query, then list all occurrences in
 "			the file (like |:ilist|). 
-" 			With [count]: Query, then jump to [count]'th
-" 			occurrence; if it doesn't exist, list all occurrences. 
+"			With [count]: Query, then jump to [count]'th
+"			occurrence; if it doesn't exist, list all occurrences. 
 "[count]]/		Without [count]: Query, then list occurrences from the
-" 			cursor position to end of file. 
-" 			With [count]: Query, then jump to [count]'th
-" 			occurrence from the cursor position; if it doesn't
-" 			exist, list occurrences from the cursor position to
-" 			end of file. 
+"			cursor position to end of file. 
+"			With [count]: Query, then jump to [count]'th
+"			occurrence from the cursor position; if it doesn't
+"			exist, list occurrences from the cursor position to
+"			end of file. 
 "[count]CTRL-W_/	Query, then jump to the [count]'th occurrence in a split window. 
 "
 " These eclipse [/ and ]/ motions, but you can still use [* and ]*. 
 nnoremap <silent> <C-W>/     :<C-u>call <SID>FindOccurrence('?', 'split', 1)<CR>
 nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jump-list' : 'list'), 1)<CR>
 nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jump-list' : 'list'), 0)<CR>
+
+"[count][?		Without [count]: List all occurrences of the previously
+"                       queried pattern in the file (like |:ilist|). 
+" 			With [count]: Jump to [count]'th previously queried
+" 			occurrence; if it doesn't exist, list all occurrences. 
+"[count]]?		Without [count]: List occurrences of the previously
+"			queried pattern from the cursor position to end of file. 
+"			With [count]: Jump to [count]'th previously queried
+"			occurrence from the cursor position; if it doesn't
+"			exist, list occurrences from the cursor position to
+"			end of file. 
+"[count]CTRL-W_?	Jump to the [count]'th previously queried occurrence in
+"			a split window. 
+nnoremap <silent> <C-W>?     :<C-u>call <SID>FindOccurrence('?R', 'split', 1)<CR>
+nnoremap <silent> [?         :<C-u>call <SID>FindOccurrence('?R', (v:count ? 'jump-list' : 'list'), 1)<CR>
+nnoremap <silent> ]?         :<C-u>call <SID>FindOccurrence('?R', (v:count ? 'jump-list' : 'list'), 0)<CR>
 
 " vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
