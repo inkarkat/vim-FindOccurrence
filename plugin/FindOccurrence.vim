@@ -49,6 +49,9 @@
 "				selection. 
 "				ENH: Added [? ]? CTRL-W_? mappings that
 "				reuse last queried pattern. 
+"				Now opening folds at the jump destination, even
+"				though the original :ijump command and [ CTRL-I
+"				mappings do not open the fold at the match. 
 "	008	05-Jan-2010	BUG: Didn't escape <cword> and didn't check
 "				whether it actually must be enclosed in \<...\>.
 "				Now using
@@ -143,6 +146,12 @@ function! s:DoJump( isSilent )
     try
 	execute s:range . 'ijump' . s:skipComment s:count s:pattern
 	let s:didJump = 1
+
+	" For some unknown reason, the original :ijump command and [ CTRL-I
+	" mappings do not open the fold at the match. I prefer to have the fold
+	" opened. 
+	normal! zv
+
 	return 1
     catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
 	if a:isSilent 
@@ -297,9 +306,9 @@ nnoremap <silent> [/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jum
 nnoremap <silent> ]/         :<C-u>call <SID>FindOccurrence('?', (v:count ? 'jump-list' : 'list'), 0)<CR>
 
 "[count][?		Without [count]: List all occurrences of the previously
-"                       queried pattern in the file (like |:ilist|). 
-" 			With [count]: Jump to [count]'th previously queried
-" 			occurrence; if it doesn't exist, list all occurrences. 
+"			queried pattern in the file (like |:ilist|). 
+"			With [count]: Jump to [count]'th previously queried
+"			occurrence; if it doesn't exist, list all occurrences. 
 "[count]]?		Without [count]: List occurrences of the previously
 "			queried pattern from the cursor position to end of file. 
 "			With [count]: Jump to [count]'th previously queried
