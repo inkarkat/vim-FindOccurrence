@@ -13,7 +13,9 @@
 "
 " USAGE:
 "   - The [ and <C-W> mappings start at the beginning of the file, the ]
-"     mappings at the line after the cursor. 
+"     mappings at the line after the cursor. Both are directed forward, so it's
+"     easy to jump to the next match, but to go to a previous match, you have to
+"     find out about the match number and use that. 
 "   - Without a [count], commented lines are ignored. If you want to show the
 "     list that includes commented lines, use a high count (e.g. 999) that is
 "     unlikely to produce a direct match. 
@@ -25,6 +27,14 @@
 "   - d D <C-D> <C-W>d <C-W><C-D> for macro definition under cursor. 
 "   - n N <C-N> <C-W>n <C-W><C-N> for current search result. 
 "   - / <C-W>/                    for queried pattern. 
+"
+" USE CASES:
+"   - List all occurrences excluding / including comments:
+"     [X / 999[X
+"   - Move through all matches excluding / including comments:
+"     [CTRL-X, ]CTRL-X, ]CTRL-X, ... / 1[CTRL-X, 1]CTRL-X, 1]CTRL-X, ...
+"   - Move through every n'th match excluding / including comments:
+"     [CTRL-X, ]Xn, ]Xn, ... / 1[CTRL-X, n]CTRL-X, n]CTRL-X, ...
 "
 " INSTALLATION:
 " DEPENDENCIES:
