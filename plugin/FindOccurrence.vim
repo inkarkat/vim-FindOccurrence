@@ -331,4 +331,4 @@ nnoremap <silent> <C-W>?     :<C-u>call <SID>FindOccurrence('?R', 'split', 1)<CR
 nnoremap <silent> [?         :<C-u>call <SID>FindOccurrence('?R', (v:count ? 'jump-list' : 'list'), 1)<CR>
 nnoremap <silent> ]?         :<C-u>call <SID>FindOccurrence('?R', (v:count ? 'jump-list' : 'list'), 0)<CR>
 
-" vim: set sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
+" vim: set ts=8 sts=4 sw=4 noexpandtab ff=unix fdm=syntax :
