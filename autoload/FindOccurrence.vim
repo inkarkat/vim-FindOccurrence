@@ -2,6 +2,7 @@
 "
 " DEPENDENCIES:
 "   - ingosearch.vim autoload script
+"   - ingouserquery.vim autoload script
 "
 " Copyright: (C) 2008-2012 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -10,6 +11,9 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	011	23-Aug-2012	Use ingouserquery#GetNumber() instead of
+"				input(); this way the query doesn't have to be
+"				concluded with <Enter>, saving one keystroke.
 "	010	23-Aug-2012	Split off autoload script and documentation.
 "	009	15-Jul-2010	BUG: Accidentally removed queried pattern from
 "				the input history if the user cancels out of
@@ -80,26 +84,25 @@ function! s:DoSplit()
 endfunction
 function! s:DoList()
     try
+	redir => l:ilistOutput
 	execute s:range . 'ilist' . s:skipComment s:pattern
+	redir END
     catch /^Vim\%((\a\+)\)\=:E38[789]/
+	redir END
 	call s:EchoError()
 	return 0
     endtry
 
-    let s:count = input('Go to: ')
-    " Do not remember this selection, as it interferes with easy recall of
-    " entered pattern (via <Up>).
-    if ! empty(s:count)
-	" Nothing is added to the input history if the user canceled with <Esc>.
-	call histdel('input', -1)
-    endif
-
-    if s:count !~# '^[1-9]\d*$'
+    echo 'Go to: '
+    let l:maxCount = len(split(l:ilistOutput, "\n")) - 1    " Subtract 1 for the header showing the buffer name.
+    let s:count = ingouserquery#GetNumber(l:maxCount)
+    if s:count == -1
 	" User canceled, there's no error message to show, so don't delay
 	" visual reselection.
 	let s:reselectionDelay = 0
 	return 0
     endif
+    redraw	" Somehow need this to avoid the hit-enter prompt.
 
     return s:DoJump(0)
 endfunction
