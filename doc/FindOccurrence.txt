@@ -22,7 +22,7 @@ This plugin adds the following features to the default Vim mappings for
 - |]I| et al. also work in visual mode, searching for the selection instead of
   the keyword under cursor.
 - New |]n| |]N| |]<C-N>| |<C-W>n| |<C-W><C-N>| mappings that operate on the
-  current search results.
+  last search pattern.
 - New |]/| |<C-W>/| mappings that query and then operate on a pattern.
 
 SOURCE									     *
@@ -51,7 +51,7 @@ With any [count], also includes 'comment'ed lines.
 			cursor position.
 
 				     *[n* *]n* *[N* *]N* *[_CTRL-N* *]_CTRL-N*
-List occurrences of current search result (@/):
+List occurrences of last search pattern |quote/|:
 With any [count], also includes 'comment'ed lines.
 [count][n		List [count]'th occurrence in the file. (Like
 			|:isearch|)
@@ -113,7 +113,7 @@ NOTES									     *
   occurrence.
 - i I <Tab> <C-W>i <C-W><Tab> for keyword under cursor.
 - d D <C-D> <C-W>d <C-W><C-D> for macro definition under cursor.
-- n N <C-N> <C-W>n <C-W><C-N> for current search result.
+- n N <C-N> <C-W>n <C-W><C-N> for last search pattern.
 - / <C-W>/                    for queried pattern.
 
 USE CASES								     *
