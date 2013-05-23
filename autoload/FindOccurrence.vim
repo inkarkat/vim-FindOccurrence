@@ -11,6 +11,7 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	012	26-Oct-2012	BUG: Undefined a:range in s:DoSplit().
 "	011	23-Aug-2012	Use ingouserquery#GetNumber() instead of
 "				input(); this way the query doesn't have to be
 "				concluded with <Enter>, saving one keystroke.
@@ -77,7 +78,7 @@ function! s:DoSplit()
 	" Check that the destination exists before splitting the window.
 	silent execute s:range . 'isearch' . s:skipComment s:count s:pattern
 	split
-	execute a:range . 'ijump' . s:skipComment s:count s:pattern
+	execute s:range . 'ijump' . s:skipComment s:count s:pattern
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	call s:EchoError()
     endtry
