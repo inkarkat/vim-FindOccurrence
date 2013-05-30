@@ -1,16 +1,17 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump.
 "
 " DEPENDENCIES:
-"   - ingosearch.vim autoload script
+"   - ingo/regexp.vim autoload script
 "   - ingouserquery.vim autoload script
 "
-" Copyright: (C) 2008-2012 Ingo Karkat
+" Copyright: (C) 2008-2013 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	013	24-May-2013	Move ingosearch.vim to ingo-library.
 "	012	26-Oct-2012	BUG: Undefined a:range in s:DoSplit().
 "	011	23-Aug-2012	Use ingouserquery#GetNumber() instead of
 "				input(); this way the query doesn't have to be
@@ -139,7 +140,7 @@ function! FindOccurrence#Find( mode, operation, isEntireBuffer )
     let l:selectionLength = 0
 
     if a:mode ==# 'n' " Normal mode, use word under cursor.
-	let s:pattern = '/' . ingosearch#LiteralTextToSearchPattern(expand('<cword>'), 1, '') . '/'
+	let s:pattern = '/' . ingo#regexp#FromLiteralText(expand('<cword>'), 1, '') . '/'
     elseif a:mode ==# 'v' " Visual mode, use selection.
 	execute 'normal! gvy'
 	let s:pattern = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
