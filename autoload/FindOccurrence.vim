@@ -1,8 +1,8 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump.
 "
 " DEPENDENCIES:
+"   - ingo/query/get.vim autoload script
 "   - ingo/regexp.vim autoload script
-"   - ingouserquery.vim autoload script
 "
 " Copyright: (C) 2008-2013 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
@@ -11,6 +11,8 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	014	31-May-2013	Move ingouserquery#Get...() functions into
+"				ingo-library.
 "	013	24-May-2013	Move ingosearch.vim to ingo-library.
 "	012	26-Oct-2012	BUG: Undefined a:range in s:DoSplit().
 "	011	23-Aug-2012	Use ingouserquery#GetNumber() instead of
@@ -97,7 +99,7 @@ function! s:DoList()
 
     echo 'Go to: '
     let l:maxCount = len(split(l:ilistOutput, "\n")) - 1    " Subtract 1 for the header showing the buffer name.
-    let s:count = ingouserquery#GetNumber(l:maxCount)
+    let s:count = ingo#query#get#Number(l:maxCount)
     if s:count == -1
 	" User canceled, there's no error message to show, so don't delay
 	" visual reselection.
