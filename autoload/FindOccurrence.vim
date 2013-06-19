@@ -1,6 +1,7 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump.
 "
 " DEPENDENCIES:
+"   - ingo/msg.vim autoload script
 "   - ingo/query/get.vim autoload script
 "   - ingo/regexp.vim autoload script
 "
@@ -11,6 +12,8 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	015	14-Jun-2013	Use ingo/msg.vim, and re-use s:EchoError()
+"				internally.
 "	014	31-May-2013	Move ingouserquery#Get...() functions into
 "				ingo-library.
 "	013	24-May-2013	Move ingosearch.vim to ingo-library.
@@ -56,12 +59,7 @@ function! s:EchoError()
     " A redraw fixes this.
     redraw
 
-    echohl ErrorMsg
-    " v:exception contains what is normally in v:errmsg, but with extra
-    " exception source info prepended, which we cut away.
-    let v:errmsg = substitute(v:exception, '^Vim\%((\a\+)\)\=:', '', '')
-    echomsg v:errmsg
-    echohl None
+    call ingo#msg#VimExceptionMsg()
 endfunction
 function! s:DoSearch( isSilent )
     try
@@ -156,15 +154,7 @@ function! FindOccurrence#Find( mode, operation, isEntireBuffer )
 	let s:pattern = '/' . l:pattern . '/'
     elseif a:mode ==# '?R' " Reuse last queried pattern.
 	if ! exists('s:lastPattern')
-	    " After input(), the next :echo may be off-base. (Is this a Vim bug?)
-	    " A redraw fixes this.
-	    redraw
-
-	    let v:errmsg = 'No previous pattern, use [/ first'
-	    echohl ErrorMsg
-	    echomsg v:errmsg
-	    echohl None
-
+	    call s:EchoError('No previous pattern, use [/ first')
 	    return
 	endif
 	let s:pattern = '/' . s:lastPattern . '/'
