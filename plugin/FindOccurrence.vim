@@ -1,7 +1,7 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump.
 "
 " DEPENDENCIES:
-"   - - FindOccurrence.vim autoload script
+"   - FindOccurrence.vim autoload script
 "
 " Copyright: (C) 2008-2012 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
