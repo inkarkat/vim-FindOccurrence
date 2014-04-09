@@ -12,6 +12,9 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"	016	20-Jun-2013	FIX: Cannot actually re-use s:EchoError(),
+"				rename s:EchoError() to s:VimExceptionMsg() to
+"				clarify.
 "	015	14-Jun-2013	Use ingo/msg.vim, and re-use s:EchoError()
 "				internally.
 "	014	31-May-2013	Move ingouserquery#Get...() functions into
@@ -54,7 +57,7 @@
 "				position.
 "	001	08-Jul-2008	file creation from Wiki page
 
-function! s:EchoError()
+function! s:VimExceptionMsg()
     " After input(), the next :echo may be off-base. (Is this a Vim bug?)
     " A redraw fixes this.
     redraw
@@ -66,11 +69,11 @@ function! s:DoSearch( isSilent )
 	execute s:range . 'isearch' . s:skipComment s:count s:pattern
     catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
 	if ! a:isSilent
-	    call s:EchoError()
+	    call s:VimExceptionMsg()
 	endif
 	return 0
     catch /^Vim\%((\a\+)\)\=:E38[78]/
-	call s:EchoError()
+	call s:VimExceptionMsg()
     endtry
     return 1
 endfunction
@@ -81,7 +84,7 @@ function! s:DoSplit()
 	split
 	execute s:range . 'ijump' . s:skipComment s:count s:pattern
     catch /^Vim\%((\a\+)\)\=:E38[789]/
-	call s:EchoError()
+	call s:VimExceptionMsg()
     endtry
 endfunction
 function! s:DoList()
@@ -91,7 +94,7 @@ function! s:DoList()
 	redir END
     catch /^Vim\%((\a\+)\)\=:E38[789]/
 	redir END
-	call s:EchoError()
+	call s:VimExceptionMsg()
 	return 0
     endtry
 
@@ -123,10 +126,10 @@ function! s:DoJump( isSilent )
 	if a:isSilent
 	    return 0
 	else
-	    call s:EchoError()
+	    call s:VimExceptionMsg()
 	endif
     catch /^Vim\%((\a\+)\)\=:E38[78]/
-	call s:EchoError()
+	call s:VimExceptionMsg()
     endtry
     return 1
 endfunction
@@ -154,7 +157,7 @@ function! FindOccurrence#Find( mode, operation, isEntireBuffer )
 	let s:pattern = '/' . l:pattern . '/'
     elseif a:mode ==# '?R' " Reuse last queried pattern.
 	if ! exists('s:lastPattern')
-	    call s:EchoError('No previous pattern, use [/ first')
+	    call ingo#msg#ErrorMsg('No previous pattern, use [/ first')
 	    return
 	endif
 	let s:pattern = '/' . s:lastPattern . '/'
