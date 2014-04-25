@@ -30,15 +30,8 @@ SOURCE									     *
 Based on the Vim Tip "Search visually":
     http://vim.wikia.com/wiki/Search_visually
 
-SEE ALSO								     *
-(Plugins offering complementary functionality, or plugins using this library.)
-
-RELATED WORKS								     *
-(Alternatives from other authors, other approaches, references not used here.)
-
 ==============================================================================
 USAGE							*FindOccurrence-usage*
-
 					       *[I* *]I* *[_CTRL-I* *]_CTRL-I*
 List occurrences of word under cursor / visual selection:
 With any [count], also includes 'comment'ed lines.
@@ -125,8 +118,6 @@ USE CASES								     *
 - Move through every n'th match excluding / including comments:
   [CTRL-X, ]Xn, ]Xn, ... / 1[CTRL-X, n]CTRL-X, n]CTRL-X, ...
 
-EXAMPLE						      *FindOccurrence-example*
-
 ==============================================================================
 INSTALLATION					 *FindOccurrence-installation*
 
@@ -156,14 +147,14 @@ IDEAS							*FindOccurrence-ideas*
 ==============================================================================
 HISTORY						      *FindOccurrence-history*
 
-GOAL
+1.00	10-Apr-2014
 First published version.
 
 0.01	08-Jul-2008
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2013 Ingo Karkat
+Copyright: (C) 2008-2014 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
