@@ -10,7 +10,7 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
-"	010	23-Aug-2012	Split off autoload script and documentation.
+"   1.00.010	23-Aug-2012	Split off autoload script and documentation.
 "	009	15-Jul-2010	BUG: Accidentally removed queried pattern from
 "				the input history if the user cancels out of
 "				selection.
