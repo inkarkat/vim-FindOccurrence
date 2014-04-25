@@ -1,17 +1,23 @@
 " FindOccurrence.vim: Extended mappings for :isearch, :ilist and :ijump.
 "
 " DEPENDENCIES:
+"   - ingo/compat.vim autoload script
 "   - ingo/msg.vim autoload script
 "   - ingo/query/get.vim autoload script
 "   - ingo/regexp.vim autoload script
 "
-" Copyright: (C) 2008-2013 Ingo Karkat
+" Copyright: (C) 2008-2014 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"   1.00.017	10-Apr-2014	I18N: Visual reselection is off for multi-byte
+"				characters due to mismatch of byte length and
+"				character count. Use strchars() instead. No need
+"				to consider newlines, :ilist doesn't support
+"				them, anyway.
 "	016	20-Jun-2013	FIX: Cannot actually re-use s:EchoError(),
 "				rename s:EchoError() to s:VimExceptionMsg() to
 "				clarify.
@@ -147,7 +153,7 @@ function! FindOccurrence#Find( mode, operation, isEntireBuffer )
     elseif a:mode ==# 'v' " Visual mode, use selection.
 	execute 'normal! gvy'
 	let s:pattern = '/\V' . substitute(escape(@@, '/\'), "\n", '\\n', 'g') . '/'
-	let l:selectionLength = (line2byte("'>") + col("'>")) - (line2byte("'<") + col("'<"))
+	let l:selectionLength = (&selection ==# 'exclusive' && getpos("'<") == getpos("'>") ? 0 : ingo#compat#strchars(@@) - (&selection ==# 'exclusive' ? 0 : 1))
     elseif a:mode ==# '/' " Use current search result.
 	let s:pattern = '/' . @/ . '/'
     elseif a:mode ==# '?' " Query for pattern.
