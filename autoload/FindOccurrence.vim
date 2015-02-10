@@ -76,12 +76,12 @@ endfunction
 function! s:DoSearch( isSilent )
     try
 	execute s:range . 'isearch' . s:skipComment s:count s:pattern
-    catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
+    catch /^Vim\%((\a\+)\)\=:E389:/ " Couldn't find pattern
 	if ! a:isSilent
 	    call s:VimExceptionMsg()
 	endif
 	return 0
-    catch /^Vim\%((\a\+)\)\=:E38[78]/
+    catch /^Vim\%((\a\+)\)\=:E38[78]:/
 	call s:VimExceptionMsg()
     endtry
     return 1
@@ -92,7 +92,7 @@ function! s:DoSplit()
 	silent execute s:range . 'isearch' . s:skipComment s:count s:pattern
 	split
 	execute s:range . 'ijump' . s:skipComment s:count s:pattern
-    catch /^Vim\%((\a\+)\)\=:E38[789]/
+    catch /^Vim\%((\a\+)\)\=:E38[789]:/
 	call s:VimExceptionMsg()
     endtry
 endfunction
@@ -101,7 +101,7 @@ function! s:DoList()
 	redir => l:ilistOutput
 	execute s:range . 'ilist' . s:skipComment s:pattern
 	redir END
-    catch /^Vim\%((\a\+)\)\=:E38[789]/
+    catch /^Vim\%((\a\+)\)\=:E38[789]:/
 	redir END
 	call s:VimExceptionMsg()
 	return 0
@@ -131,13 +131,13 @@ function! s:DoJump( isSilent )
 	normal! zv
 
 	return 1
-    catch /^Vim\%((\a\+)\)\=:E389/ " Couldn't find pattern
+    catch /^Vim\%((\a\+)\)\=:E389:/ " Couldn't find pattern
 	if a:isSilent
 	    return 0
 	else
 	    call s:VimExceptionMsg()
 	endif
-    catch /^Vim\%((\a\+)\)\=:E38[78]/
+    catch /^Vim\%((\a\+)\)\=:E38[78]:/
 	call s:VimExceptionMsg()
     endtry
     return 1
