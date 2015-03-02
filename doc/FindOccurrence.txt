@@ -148,7 +148,7 @@ IDEAS							*FindOccurrence-ideas*
 ==============================================================================
 HISTORY						      *FindOccurrence-history*
 
-1.01	RELEASEME
+1.01	23-May-2014
 - ENH: Add g[I and g[<Tab> mappings that search for the word (not the
   \<word\>) under the cursor, like * and g*.
 
