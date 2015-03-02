@@ -6,13 +6,14 @@
 "   - ingo/query/get.vim autoload script
 "   - ingo/regexp.vim autoload script
 "
-" Copyright: (C) 2008-2014 Ingo Karkat
+" Copyright: (C) 2008-2015 Ingo Karkat
 "   The VIM LICENSE applies to this script; see ':help copyright'.
 "
 " Maintainer:	Ingo Karkat <ingo@karkat.de>
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"   1.02.019	11-Feb-2015	Minor: Move :redir END to finally block.
 "   1.01.018	26-Apr-2014	ENH: Add mode "N" that searches for the word
 "				(not the \<word\>) under the cursor, like * and
 "				g*.
@@ -100,11 +101,11 @@ function! s:DoList()
     try
 	redir => l:ilistOutput
 	execute s:range . 'ilist' . s:skipComment s:pattern
-	redir END
     catch /^Vim\%((\a\+)\)\=:E38[789]:/
-	redir END
 	call s:VimExceptionMsg()
 	return 0
+    finally
+	redir END
     endtry
 
     echo 'Go to: '
