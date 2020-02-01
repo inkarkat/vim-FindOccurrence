@@ -148,6 +148,8 @@ IDEAS							*FindOccurrence-ideas*
 ==============================================================================
 HISTORY						      *FindOccurrence-history*
 
+1.02	RELEASEME
+
 1.01	23-May-2014
 - ENH: Add g[I and g[<Tab> mappings that search for the word (not the
   \<word\>) under the cursor, like * and g*.
@@ -159,7 +161,7 @@ First published version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2014 Ingo Karkat
+Copyright: (C) 2008-2015 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
