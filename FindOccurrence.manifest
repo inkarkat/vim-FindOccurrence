@@ -1,0 +1,3 @@
+autoload/FindOccurrence.vim
+plugin/FindOccurrence.vim
+doc/FindOccurrence.txt
