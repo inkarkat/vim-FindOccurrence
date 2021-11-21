@@ -13,6 +13,8 @@
 " Source: http://vim.wikia.com/wiki/Search_visually
 "
 " REVISION	DATE		REMARKS
+"   1.02.020	03-Mar-2015	Minor: Also avoid the hit-enter prompt when
+"				canceling the jump with <Esc>.
 "   1.02.019	11-Feb-2015	Minor: Move :redir END to finally block.
 "   1.01.018	26-Apr-2014	ENH: Add mode "N" that searches for the word
 "				(not the \<word\>) under the cursor, like * and
@@ -111,13 +113,13 @@ function! s:DoList()
     echo 'Go to: '
     let l:maxCount = len(split(l:ilistOutput, "\n")) - 1    " Subtract 1 for the header showing the buffer name.
     let s:count = ingo#query#get#Number(l:maxCount)
+    redraw	" Somehow need this to avoid the hit-enter prompt.
     if s:count == -1
 	" User canceled, there's no error message to show, so don't delay
 	" visual reselection.
 	let s:reselectionDelay = 0
 	return 0
     endif
-    redraw	" Somehow need this to avoid the hit-enter prompt.
 
     return s:DoJump(0)
 endfunction
