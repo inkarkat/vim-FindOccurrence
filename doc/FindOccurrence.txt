@@ -30,6 +30,11 @@ SOURCE									     *
 Based on the Vim Tip "Search visually":
     http://vim.wikia.com/wiki/Search_visually
 
+RELATED WORKS								     *
+
+- qlist (https://github.com/romainl/vim-qlist) makes [I, [D, and related
+  commands persist to the quickfix list
+
 ==============================================================================
 USAGE							*FindOccurrence-usage*
 	   *[I* *]I* *[_CTRL-I* *]_CTRL-I* *g[I* *g]I* *g[_CTRL-I* *g]_CTRL-I*
@@ -161,7 +166,7 @@ First published version.
 Started development.
 
 ==============================================================================
-Copyright: (C) 2008-2015 Ingo Karkat
+Copyright: (C) 2008-2020 Ingo Karkat
 The VIM LICENSE applies to this plugin; see |copyright|.
 
 Maintainer:	Ingo Karkat <ingo@karkat.de>
